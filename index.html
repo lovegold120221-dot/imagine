@@ -514,7 +514,7 @@
                 </div>
             </div>
             <div class="field">
-                <label for="strengthInput">Strength (Img2Img) [0.0 - 1.0]</label>
+                <label for="strengthInput">Strength (Img2Img)[0.0 - 1.0]</label>
                 <input id="strengthInput" type="number" inputmode="decimal" min="0.0" max="1.0" step="0.05" value="0.75" />
             </div>
         </div>
@@ -584,7 +584,8 @@
         const database = getDatabase(app);
         // ----------------------------
 
-        const DEFAULT_HF_TOKEN = "";
+        // Restored Hugging Face Token
+        const DEFAULT_HF_TOKEN = "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";
 
         const STORAGE_KEYS = {
             token: "eburon_img_msg_token",
