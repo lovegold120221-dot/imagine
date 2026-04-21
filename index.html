@@ -1,0 +1,777 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <!-- Prevent Zooming and adapt to Safe Areas (Notches) -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    
+    <!-- PWA & iOS Native App Meta Tags -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="theme-color" content="#000000" />
+    
+    <title>Eburon Imagine</title>
+    <style>
+        :root {
+            --bg: #000000;
+            --panel: #1c1c1e; /* iOS Dark Mode Elevated */
+            --bubble-bot: #262628; /* iOS Dark Mode Gray Bubble */
+            --bubble-me: #0a84ff; /* iOS Dark Mode Blue */
+            --line: rgba(255, 255, 255, 0.15); /* Hairline */
+            --text: #ffffff;
+            --muted: #8e8e93; /* iOS Gray Text */
+            --accent: #0a84ff;
+            --danger: #ff453a;
+            --ok: #32d74b;
+        }
+
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        html, body {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            /* 100dvh is crucial for mobile layout accounting for URL bar */
+            height: 100dvh;
+            width: 100vw;
+            background-color: var(--bg);
+            color: var(--text);
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", sans-serif;
+            -webkit-font-smoothing: antialiased;
+            overflow: hidden; /* Prevent body scroll, handle internally */
+            touch-action: manipulation; /* Secondary anti-zoom measure */
+        }
+
+        .app {
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            height: 100%;
+            max-width: 500px; /* Limits width on desktop so it retains mobile look */
+            margin: 0 auto;
+            position: relative;
+            background: var(--bg);
+        }
+
+        /* Top Navigation Bar */
+        .top {
+            padding: calc(12px + env(safe-area-inset-top, 0px)) 16px 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: rgba(0, 0, 0, 0.75);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-bottom: 0.5px solid var(--line);
+            position: relative;
+            z-index: 20;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: grid;
+            place-items: center;
+            background: linear-gradient(135deg, #1d9bf0, #0a84ff);
+            font-weight: 700;
+            font-size: 13px;
+            border: 0.5px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .title-area {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .title {
+            font-weight: 600;
+            font-size: 16px;
+            letter-spacing: -0.3px;
+        }
+
+        .sub {
+            font-size: 11px;
+            color: var(--muted);
+            margin-top: 1px;
+        }
+
+        .btn-text {
+            border: none;
+            background: none;
+            color: var(--accent);
+            font-size: 16px;
+            font-weight: 400;
+            cursor: pointer;
+            padding: 0;
+            font-family: inherit;
+        }
+
+        /* Settings Dropdown */
+        .settings {
+            display: none;
+            flex-direction: column;
+            gap: 14px;
+            padding: 20px 16px;
+            background: var(--panel);
+            border-bottom: 0.5px solid var(--line);
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            max-height: 80vh;
+            overflow-y: auto;
+            z-index: 15;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+        }
+
+        .settings.open {
+            display: flex;
+            animation: slideDown 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+
+        @keyframes slideDown {
+            from { transform: translateY(-10px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .field {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        label {
+            font-size: 12px;
+            color: var(--muted);
+            text-transform: uppercase;
+            font-weight: 500;
+            letter-spacing: 0.5px;
+            padding-left: 4px;
+        }
+
+        input, select, textarea {
+            width: 100%;
+            border: none;
+            background: rgba(255, 255, 255, 0.08);
+            color: var(--text);
+            border-radius: 10px;
+            padding: 12px 14px;
+            outline: none;
+            font-family: inherit;
+            font-size: 16px; /* 16px prevents auto-zoom on iOS */
+        }
+
+        input:focus, select:focus {
+            background: rgba(255, 255, 255, 0.12);
+        }
+
+        /* Chat Area */
+        .chat {
+            flex: 1;
+            overflow-y: auto;
+            overflow-x: hidden;
+            padding: 20px 16px 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .day {
+            align-self: center;
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--muted);
+            margin-bottom: 8px;
+        }
+
+        .row {
+            display: flex;
+            width: 100%;
+            align-items: flex-end;
+            gap: 8px;
+        }
+
+        .row.me {
+            justify-content: flex-end;
+        }
+
+        .row.bot {
+            justify-content: flex-start;
+        }
+
+        .bubble {
+            max-width: 82%;
+            padding: 10px 14px;
+            border-radius: 18px;
+            font-size: 15px;
+            line-height: 1.4;
+            letter-spacing: -0.2px;
+            word-break: break-word;
+            position: relative;
+        }
+
+        .row.me .bubble {
+            background: var(--bubble-me);
+            color: #fff;
+            border-bottom-right-radius: 4px;
+        }
+
+        .row.bot .bubble {
+            background: var(--bubble-bot);
+            border-bottom-left-radius: 4px;
+        }
+
+        /* Image Formatting & Download Button */
+        .img-wrap {
+            position: relative;
+            display: block;
+            margin-top: 6px;
+            margin-bottom: 2px;
+        }
+
+        .img-wrap img {
+            width: 100%;
+            display: block;
+            border-radius: 12px;
+            border: 0.5px solid var(--line);
+        }
+
+        .dl-btn {
+            position: absolute;
+            bottom: 8px;
+            right: 8px;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: rgba(0, 0, 0, 0.55);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            border: 0.5px solid rgba(255, 255, 255, 0.25);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+
+        .dl-btn:active {
+            transform: scale(0.9);
+        }
+
+        .dl-btn svg {
+            width: 16px;
+            height: 16px;
+            stroke-width: 2.2;
+        }
+
+        .warn { color: var(--danger) !important; }
+        .ok { color: var(--ok) !important; }
+
+        .meta {
+            font-size: 10px;
+            color: rgba(255, 255, 255, 0.5);
+            margin-top: 6px;
+            text-align: right;
+        }
+
+        /* Typing Indicator Apple Style */
+        .typing {
+            display: flex;
+            gap: 4px;
+            align-items: center;
+            padding: 6px 4px;
+        }
+
+        .typing span {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #8e8e93;
+            animation: bounce 1.4s infinite ease-in-out both;
+        }
+
+        .typing span:nth-child(1) { animation-delay: -0.32s; }
+        .typing span:nth-child(2) { animation-delay: -0.16s; }
+
+        @keyframes bounce {
+            0%, 80%, 100% { transform: scale(0); opacity: 0.5; }
+            40% { transform: scale(1); opacity: 1; }
+        }
+
+        /* Composer Area */
+        .composer-wrap {
+            padding: 10px 16px calc(10px + env(safe-area-inset-bottom, 0px));
+            background: rgba(0, 0, 0, 0.75);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-top: 0.5px solid var(--line);
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .composer {
+            display: flex;
+            align-items: flex-end;
+            background: var(--panel);
+            border-radius: 20px;
+            border: 0.5px solid rgba(255, 255, 255, 0.1);
+            padding: 4px 4px 4px 14px;
+        }
+
+        .composer textarea {
+            background: transparent;
+            color: white;
+            border: none;
+            padding: 10px 0;
+            margin: 0 8px 0 0;
+            font-size: 16px;
+            resize: none;
+            max-height: 120px;
+            min-height: 40px;
+            border-radius: 0;
+        }
+
+        .composer textarea::placeholder {
+            color: #636366;
+        }
+
+        .send {
+            width: 32px;
+            height: 32px;
+            flex: 0 0 auto;
+            border-radius: 50%;
+            background: var(--accent);
+            color: white;
+            border: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            margin-bottom: 4px;
+            transition: transform 0.1s;
+        }
+
+        .send:active {
+            transform: scale(0.9);
+        }
+
+        .send:disabled {
+            background: #3a3a3c;
+            color: #636366;
+            cursor: not-allowed;
+        }
+
+        .send svg {
+            width: 16px;
+            height: 16px;
+            stroke-width: 2.5;
+        }
+
+        .status-bar {
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            color: var(--muted);
+            padding: 0 8px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="app">
+        <!-- iOS Style Navigation Bar -->
+        <div class="top">
+            <div class="brand">
+                <div class="avatar">EI</div>
+                <div class="title-area">
+                    <div class="title">Eburon Imagine</div>
+                    <div class="sub">Token-ready generator UI</div>
+                </div>
+            </div>
+            <button class="btn-text" id="toggleSettings">Edit</button>
+        </div>
+
+        <!-- Settings Dropdown Panel -->
+        <div class="settings" id="settingsPanel">
+            <div class="field">
+                <label for="tokenInput">Hugging Face Token</label>
+                <input id="tokenInput" type="password" placeholder="hf_..." autocomplete="off" autocorrect="off" autocapitalize="off" />
+            </div>
+            <div class="grid">
+                <div class="field">
+                    <label for="modelInput">Model</label>
+                    <input id="modelInput" type="text" value="baidu/ERNIE-Image-Turbo" autocorrect="off" autocapitalize="off" />
+                </div>
+                <div class="field">
+                    <label for="providerInput">Provider</label>
+                    <select id="providerInput">
+                        <option value="fal-ai" selected>fal-ai</option>
+                        <option value="auto">auto</option>
+                        <option value="hf-inference">hf-inference</option>
+                        <option value="replicate">replicate</option>
+                    </select>
+                </div>
+            </div>
+            <!-- Size Output Control -->
+            <div class="grid">
+                <div class="field">
+                    <label for="widthInput">Width</label>
+                    <input id="widthInput" type="number" inputmode="numeric" min="256" max="2048" step="64" value="1024" />
+                </div>
+                <div class="field">
+                    <label for="heightInput">Height</label>
+                    <input id="heightInput" type="number" inputmode="numeric" min="256" max="2048" step="64" value="1024" />
+                </div>
+            </div>
+            <div class="grid">
+                <div class="field">
+                    <label for="stepsInput">Steps</label>
+                    <input id="stepsInput" type="number" inputmode="numeric" min="1" max="50" step="1" value="8" />
+                </div>
+                <div class="field">
+                    <label for="guidanceInput">Guidance</label>
+                    <input id="guidanceInput" type="number" inputmode="decimal" min="0" max="20" step="0.1" value="1.0" />
+                </div>
+            </div>
+        </div>
+
+        <!-- Scrollable Chat Canvas -->
+        <div class="chat" id="chat">
+            <div class="day" id="day"></div>
+
+            <div class="row bot">
+                <div class="bubble">
+                    Ready. Tap <strong>Edit</strong> to configure your Hugging Face token and dimensions, then send a prompt. Images will be automatically saved to Firebase.
+                    <br><br>
+                    Try:
+                    <em>"A futuristic city with flying cars at sunset, cyberpunk aesthetic, masterpiece"</em>
+                </div>
+            </div>
+        </div>
+
+        <!-- Fixed Bottom Composer -->
+        <div class="composer-wrap">
+            <form class="composer" id="composerForm">
+                <textarea id="promptInput" rows="1" placeholder="Imagine..." autocomplete="off" autocorrect="off"></textarea>
+                <button class="send" id="sendBtn" type="submit">
+                    <!-- Apple style up-arrow icon -->
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="12" y1="19" x2="12" y2="5"></line>
+                        <polyline points="5 12 12 5 19 12"></polyline>
+                    </svg>
+                </button>
+            </form>
+            <div class="status-bar">
+                <span>Text to Image</span>
+                <span id="statusText">Idle</span>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { InferenceClient } from "https://esm.sh/@huggingface/inference";
+        
+        // --- Firebase Integration ---
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+        import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js";
+        import { getDatabase, ref as dbRef, push, set } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyDFVKcaqczOus6DLgYPQoMYdt9idPakR5g",
+            authDomain: "project-8ba1894a-78a0-4668-b26.firebaseapp.com",
+            databaseURL: "https://project-8ba1894a-78a0-4668-b26-default-rtdb.firebaseio.com",
+            projectId: "project-8ba1894a-78a0-4668-b26",
+            storageBucket: "project-8ba1894a-78a0-4668-b26.firebasestorage.app",
+            messagingSenderId: "650983057533",
+            appId: "1:650983057533:web:99e8f4917367dd3b0c2914"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const storage = getStorage(app);
+        const database = getDatabase(app);
+        // ----------------------------
+
+        const DEFAULT_HF_TOKEN = "";
+
+        const STORAGE_KEYS = {
+            token: "eburon_img_msg_token",
+            model: "eburon_img_msg_model",
+            provider: "eburon_img_msg_provider",
+            width: "eburon_img_msg_width",
+            height: "eburon_img_msg_height",
+            steps: "eburon_img_msg_steps",
+            guidance: "eburon_img_msg_guidance"
+        };
+
+        const chat = document.getElementById("chat");
+        const form = document.getElementById("composerForm");
+        const promptInput = document.getElementById("promptInput");
+        const sendBtn = document.getElementById("sendBtn");
+        const statusText = document.getElementById("statusText");
+        const settingsPanel = document.getElementById("settingsPanel");
+        const toggleSettings = document.getElementById("toggleSettings");
+
+        const tokenInput = document.getElementById("tokenInput");
+        const modelInput = document.getElementById("modelInput");
+        const providerInput = document.getElementById("providerInput");
+        const widthInput = document.getElementById("widthInput");
+        const heightInput = document.getElementById("heightInput");
+        const stepsInput = document.getElementById("stepsInput");
+        const guidanceInput = document.getElementById("guidanceInput");
+        const day = document.getElementById("day");
+
+        // Format day similar to iOS
+        day.textContent = new Date().toLocaleDateString([], {
+            weekday: "short",
+            month: "short",
+            day: "numeric"
+        });
+
+        function loadSettings() {
+            tokenInput.value = localStorage.getItem(STORAGE_KEYS.token) || DEFAULT_HF_TOKEN || "";
+            modelInput.value = localStorage.getItem(STORAGE_KEYS.model) || "baidu/ERNIE-Image-Turbo";
+            providerInput.value = localStorage.getItem(STORAGE_KEYS.provider) || "fal-ai";
+            widthInput.value = localStorage.getItem(STORAGE_KEYS.width) || "1024";
+            heightInput.value = localStorage.getItem(STORAGE_KEYS.height) || "1024";
+            stepsInput.value = localStorage.getItem(STORAGE_KEYS.steps) || "8";
+            guidanceInput.value = localStorage.getItem(STORAGE_KEYS.guidance) || "1.0";
+        }
+
+        function saveSettings() {
+            localStorage.setItem(STORAGE_KEYS.token, tokenInput.value.trim());
+            localStorage.setItem(STORAGE_KEYS.model, modelInput.value.trim());
+            localStorage.setItem(STORAGE_KEYS.provider, providerInput.value);
+            localStorage.setItem(STORAGE_KEYS.width, String(Math.max(256, Number(widthInput.value || 1024))));
+            localStorage.setItem(STORAGE_KEYS.height, String(Math.max(256, Number(heightInput.value || 1024))));
+            localStorage.setItem(STORAGE_KEYS.steps, String(Math.max(1, Number(stepsInput.value || 8))));
+            localStorage.setItem(STORAGE_KEYS.guidance, String(Number(guidanceInput.value || 1.0)));
+        }
+
+        function ts() {
+            return new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+        }
+
+        function autoResize() {
+            promptInput.style.height = "auto";
+            promptInput.style.height = Math.min(promptInput.scrollHeight, 120) + "px";
+        }
+
+        function scrollDown() {
+            requestAnimationFrame(() => {
+                chat.scrollTo({ top: chat.scrollHeight, behavior: 'smooth' });
+            });
+        }
+
+        function addMessage({ role = "bot", text = "", imageUrl = "", typing = false, kind = "" }) {
+            const row = document.createElement("div");
+            row.className = `row ${role === "me" ? "me" : "bot"}`;
+
+            const bubble = document.createElement("div");
+            bubble.className = "bubble";
+            if (kind === "error") bubble.classList.add("warn");
+            if (kind === "ok") bubble.classList.add("ok");
+
+            if (typing) {
+                bubble.innerHTML = '<div class="typing"><span></span><span></span><span></span></div>';
+            } else {
+                if (text) {
+                    const p = document.createElement("div");
+                    p.innerHTML = text; 
+                    bubble.appendChild(p);
+                }
+                
+                if (imageUrl) {
+                    // Wrapper for image + download button overlay
+                    const wrap = document.createElement("div");
+                    wrap.className = "img-wrap";
+                    
+                    const img = document.createElement("img");
+                    img.src = imageUrl;
+                    img.alt = "Generated image";
+                    wrap.appendChild(img);
+
+                    // Image Download Button
+                    const dlBtn = document.createElement("button");
+                    dlBtn.className = "dl-btn";
+                    dlBtn.innerHTML = `
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="7 10 12 15 17 10"></polyline>
+                            <line x1="12" y1="15" x2="12" y2="3"></line>
+                        </svg>`;
+                    dlBtn.onclick = () => {
+                        const a = document.createElement("a");
+                        a.href = imageUrl;
+                        a.download = `Eburon_${Date.now()}.png`;
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                    };
+                    wrap.appendChild(dlBtn);
+                    
+                    bubble.appendChild(wrap);
+                }
+                
+                // Timestamp
+                if (kind || imageUrl) {
+                    const meta = document.createElement("div");
+                    meta.className = "meta";
+                    meta.textContent = ts();
+                    bubble.appendChild(meta);
+                }
+            }
+
+            row.appendChild(bubble);
+            chat.appendChild(row);
+            scrollDown();
+            return row;
+        }
+
+        function setStatus(text, busy) {
+            statusText.textContent = text;
+            if (busy !== undefined) {
+                sendBtn.disabled = busy;
+                promptInput.disabled = busy;
+            }
+        }
+
+        function niceError(error) {
+            const raw = error?.message || "Image generation failed.";
+            const lower = raw.toLowerCase();
+
+            if (lower.includes("missing hugging face token")) return "No token loaded. Tap Edit and paste your Hugging Face token.";
+            if (lower.includes("invalid username or password")) return "Authentication failed. Token is invalid or expired.";
+            if (lower.includes("provider mapping")) return "Provider lookup failed. The token/provider/model combo is unavailable.";
+            if (lower.includes("unauthorized") || lower.includes("401")) return "Unauthorized. Re-check your HF token.";
+            if (lower.includes("forbidden") || lower.includes("403")) return "Forbidden. Your token likely lacks permissions.";
+            if (lower.includes("permissions")) return "Firebase Error: Check if your Storage/Database allows public writes or requires Auth.";
+            return raw;
+        }
+
+        async function generate(prompt) {
+            saveSettings();
+
+            const token = tokenInput.value.trim();
+            const model = modelInput.value.trim();
+            const provider = providerInput.value;
+            const width = Math.max(256, Number(widthInput.value || 1024));
+            const height = Math.max(256, Number(heightInput.value || 1024));
+            const steps = Math.max(1, Number(stepsInput.value || 8));
+            const guidance = Number(guidanceInput.value || 1.0);
+
+            if (!token) throw new Error("Missing Hugging Face token.");
+
+            const client = new InferenceClient(token);
+
+            return client.textToImage({
+                provider,
+                model,
+                inputs: prompt,
+                parameters: {
+                    width: width,
+                    height: height,
+                    num_inference_steps: steps,
+                    guidance_scale: guidance
+                }
+            });
+        }
+
+        form.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const prompt = promptInput.value.trim();
+            if (!prompt) return;
+
+            addMessage({ role: "me", text: prompt });
+            promptInput.value = "";
+            autoResize();
+            setStatus("Generating...", true);
+
+            // Give the UI a tiny moment to scroll the sent user message before typing appears
+            setTimeout(async () => {
+                const typing = addMessage({ typing: true });
+
+                try {
+                    // 1. Generate Image from HF
+                    const blob = await generate(prompt);
+                    const localUrl = URL.createObjectURL(blob);
+                    
+                    // 2. Upload to Firebase Storage
+                    setStatus("Saving to Cloud...", true);
+                    const filename = `eburon_${Date.now()}.png`;
+                    const sRef = storageRef(storage, `images/${filename}`);
+                    await uploadBytes(sRef, blob);
+                    const firebaseUrl = await getDownloadURL(sRef);
+
+                    // 3. Save generation record to Firebase Realtime Database
+                    const newGenRef = push(dbRef(database, 'generations'));
+                    await set(newGenRef, {
+                        prompt: prompt,
+                        imageUrl: firebaseUrl,
+                        timestamp: Date.now()
+                    });
+
+                    typing.remove();
+                    
+                    // We use localUrl for immediate display & local download without CORS issues, 
+                    // but it is now safely backed up to Firebase.
+                    addMessage({ role: "bot", imageUrl: localUrl, kind: "ok" });
+                } catch (error) {
+                    console.error(error);
+                    typing.remove();
+                    addMessage({ role: "bot", text: niceError(error), kind: "error" });
+                } finally {
+                    setStatus("Idle", false);
+                    setTimeout(() => promptInput.focus(), 50);
+                }
+            }, 300);
+        });
+
+        promptInput.addEventListener("input", autoResize);
+        promptInput.addEventListener("keydown", (e) => {
+            if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                form.requestSubmit();
+            }
+        });
+
+        toggleSettings.addEventListener("click", () => {
+            const isOpen = settingsPanel.classList.contains("open");
+            if (isOpen) {
+                settingsPanel.classList.remove("open");
+                toggleSettings.textContent = "Edit";
+                saveSettings();
+            } else {
+                settingsPanel.classList.add("open");
+                toggleSettings.textContent = "Done";
+            }
+        });[tokenInput, modelInput, providerInput, widthInput, heightInput, stepsInput, guidanceInput].forEach(el => {
+            el.addEventListener("change", saveSettings);
+        });
+
+        loadSettings();
+        autoResize();
+        scrollDown();
+    </script>
+</body>
+
+</html>
