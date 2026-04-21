@@ -481,14 +481,14 @@
             <div class="grid">
                 <div class="field">
                     <label for="modelInput">Model</label>
-                    <input id="modelInput" type="text" value="baidu/ERNIE-Image-Turbo" autocorrect="off" autocapitalize="off" />
+                    <input id="modelInput" type="text" value="stabilityai/stable-diffusion-xl-base-1.0" autocorrect="off" autocapitalize="off" />
                 </div>
                 <div class="field">
                     <label for="providerInput">Provider</label>
                     <select id="providerInput">
-                        <option value="fal-ai" selected>fal-ai</option>
-                        <option value="auto">auto</option>
+                        <option value="auto" selected>auto</option>
                         <option value="hf-inference">hf-inference</option>
+                        <option value="fal-ai">fal-ai</option>
                         <option value="replicate">replicate</option>
                     </select>
                 </div>
@@ -506,11 +506,11 @@
             <div class="grid">
                 <div class="field">
                     <label for="stepsInput">Steps</label>
-                    <input id="stepsInput" type="number" inputmode="numeric" min="1" max="50" step="1" value="8" />
+                    <input id="stepsInput" type="number" inputmode="numeric" min="1" max="50" step="1" value="25" />
                 </div>
                 <div class="field">
                     <label for="guidanceInput">Guidance</label>
-                    <input id="guidanceInput" type="number" inputmode="decimal" min="0" max="20" step="0.1" value="1.0" />
+                    <input id="guidanceInput" type="number" inputmode="decimal" min="0" max="20" step="0.1" value="7.5" />
                 </div>
             </div>
             <div class="field">
@@ -632,12 +632,13 @@
 
         function loadSettings() {
             tokenInput.value = localStorage.getItem(STORAGE_KEYS.token) || DEFAULT_HF_TOKEN || "";
-            modelInput.value = localStorage.getItem(STORAGE_KEYS.model) || "baidu/ERNIE-Image-Turbo";
-            providerInput.value = localStorage.getItem(STORAGE_KEYS.provider) || "fal-ai";
+            // Safely updated defaults to widely supported models
+            modelInput.value = localStorage.getItem(STORAGE_KEYS.model) || "stabilityai/stable-diffusion-xl-base-1.0";
+            providerInput.value = localStorage.getItem(STORAGE_KEYS.provider) || "auto";
             widthInput.value = localStorage.getItem(STORAGE_KEYS.width) || "1024";
             heightInput.value = localStorage.getItem(STORAGE_KEYS.height) || "1024";
-            stepsInput.value = localStorage.getItem(STORAGE_KEYS.steps) || "8";
-            guidanceInput.value = localStorage.getItem(STORAGE_KEYS.guidance) || "1.0";
+            stepsInput.value = localStorage.getItem(STORAGE_KEYS.steps) || "25";
+            guidanceInput.value = localStorage.getItem(STORAGE_KEYS.guidance) || "7.5";
             strengthInput.value = localStorage.getItem(STORAGE_KEYS.strength) || "0.75";
         }
 
@@ -647,8 +648,8 @@
             localStorage.setItem(STORAGE_KEYS.provider, providerInput.value);
             localStorage.setItem(STORAGE_KEYS.width, String(Math.max(256, Number(widthInput.value || 1024))));
             localStorage.setItem(STORAGE_KEYS.height, String(Math.max(256, Number(heightInput.value || 1024))));
-            localStorage.setItem(STORAGE_KEYS.steps, String(Math.max(1, Number(stepsInput.value || 8))));
-            localStorage.setItem(STORAGE_KEYS.guidance, String(Number(guidanceInput.value || 1.0)));
+            localStorage.setItem(STORAGE_KEYS.steps, String(Math.max(1, Number(stepsInput.value || 25))));
+            localStorage.setItem(STORAGE_KEYS.guidance, String(Number(guidanceInput.value || 7.5)));
             localStorage.setItem(STORAGE_KEYS.strength, String(Number(strengthInput.value || 0.75)));
         }
 
@@ -770,7 +771,7 @@
             const lower = raw.toLowerCase();
             if (lower.includes("missing hugging face token")) return "No token loaded. Tap Edit and paste your Hugging Face token.";
             if (lower.includes("invalid username or password")) return "Authentication failed. Token is invalid or expired.";
-            if (lower.includes("provider mapping")) return "Provider lookup failed. The token/provider/model combo is unavailable.";
+            if (lower.includes("provider mapping")) return "Provider lookup failed. Try changing Provider to 'auto' or Model to 'stabilityai/stable-diffusion-xl-base-1.0'.";
             if (lower.includes("unauthorized") || lower.includes("401")) return "Unauthorized. Re-check your HF token.";
             if (lower.includes("forbidden") || lower.includes("403")) return "Forbidden. Your token lacks permissions.";
             if (lower.includes("permissions")) return "Firebase Error: Check if Storage/Database rules allow public writes.";
@@ -784,8 +785,8 @@
             const provider = providerInput.value;
             const width = Math.max(256, Number(widthInput.value || 1024));
             const height = Math.max(256, Number(heightInput.value || 1024));
-            const steps = Math.max(1, Number(stepsInput.value || 8));
-            const guidance = Number(guidanceInput.value || 1.0);
+            const steps = Math.max(1, Number(stepsInput.value || 25));
+            const guidance = Number(guidanceInput.value || 7.5);
             const strength = Number(strengthInput.value || 0.75);
 
             if (!token) throw new Error("Missing Hugging Face token.");
